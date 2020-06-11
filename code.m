@@ -35,6 +35,7 @@ end
 for i=1:n
     for angle=1:q
         slice=x_train(:,:,slice_number,i);
+        % might need to correct this
         v=radon(slice,theta(angle));
         for j=1:l
             y_train(j,angle,i)=I0*exp(-v(j));
@@ -67,10 +68,13 @@ end
 
 % y -> projections of the test template.
 y_test=zeros(l,q);
+I_vec=ones(1,l)*I0;
+I0=diag(I_vec);
 slice=x_test(:,:,slice_number);
-for angle=1:q
-    y_test(:,angle)=radon(slice,theta(angle));
-end
+y_test=irradiate(slice,theta,I0,sig);
+% for angle=1:q
+%     y_test(:,angle)=radon(slice,theta(angle));
+% end
 % y_test(:,:)
 
 % coefficients of y_test along eigen vectors
@@ -142,3 +146,11 @@ W=rescale(W);
 % yp_y=u_y+V_y*alpha_y;
 % yp_z=u_z+V_z*alpha_z;
 
+function proj=irradiate(sample,theta,I,sigma)
+    proj=radon(sample,theta);
+    proj=exp(-proj);
+    proj=I*proj;
+    proj=poissonrnd(proj);
+    s=size(proj);
+    proj=proj+randn(s)*sigma;
+end

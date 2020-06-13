@@ -23,71 +23,82 @@ slice_number=1;
 % take the (slice_number)th set of slices...
 R=radon(x_train(:,:,1,1),0);
 l=length(R);
+[ht,width]=size(x_train(:,:,1,1));
+
 q=360;
+
 y_train=zeros(l,q,n);
+
 mean=zeros(l,q);
-I0=700;
-theta=zeros(1,q);
+mu_templ=zeros(ht,width);
+
+angles=zeros(1,q);
 for i=1:q
-    theta(i)=179*(i-1)/q;
+    angles(i)=179*(i-1)/q;
 end
+
+I_high=1000;
+I_mat=ones(l,q)*I_high;
 % mean and projections of training templates.
 for i=1:n
-    for angle=1:q
-        slice=x_train(:,:,slice_number,i);
-        % might need to correct this
-        v=radon(slice,theta(angle));
-        for j=1:l
-            y_train(j,angle,i)=I0*exp(-v(j));
-        end
-        mean(:,angle)=mean(:,angle)+y_train(:,angle,i);
-    end
+    slice=x_train(:,:,slice_number,i);
+    mu_templ=mu_templ+slice;
+    y_train(:,:,i)=irradiate(slice,angles,I_mat,0);
+    mean(:,:)=mean(:,:)+y_train(:,:,i);
 end 
-for angle=1:q
-    mean(:,angle)=mean(:,angle)./n;
-end
+mu_templ=mu_templ./n;
+mu_templ=reshape(mu_templ,[ht*width 1]);
+mean=mean./n;
 %mean(:,:)
 
 % Covariance matrices.
 Cov=zeros(l,l,q);
+Cov_templ=zeros(ht*width,ht*Width);
 for angle=1:q
     for i=1:n
         tmp=y_train(:,angle,i)-mean(:,angle);
         Cov(:,:,angle)=Cov(:,:,angle)+tmp*transpose(tmp);
     end
 end
+for i=1:n
+    slice=x_train(:,:,slice_number,i);
+    slice=reshape(slice,[ht*width 1]);
+    tmp=slice-mu_templ;
+    Cov_templ=Cov_templ+tmp*tmp';
+end
 % Cov(:,:,:)
 
 % Eigen spaces.
 E=zeros(l,l,q);
 for angle=1:q
-    [V,D]=eig(Cov(:,:,angle));
+    [V,~]=eig(Cov(:,:,angle));
     E(:,:,angle)=E(:,:,angle)+V;
 end
+[E_tmpl,~]=eig(Cov_templ);
 % E(:,:,:)
 
 % y -> projections of the test template.
 y_test=zeros(l,q);
-I_vec=ones(1,l)*I0;
-I0=diag(I_vec);
+I_low=10;
+I_mat_low=ones(l,q)*I_low;
 slice=x_test(:,:,slice_number);
-y_test=irradiate(slice,theta,I0,sig);
+y_test=irradiate(slice,theta,I_mat_low,sig);
 % for angle=1:q
 %     y_test(:,angle)=radon(slice,theta(angle));
 % end
 % y_test(:,:)
 
 % coefficients of y_test along eigen vectors
-alpha=zeros(l,q);
-for angle=1:q
-    alpha(:,angle)=transpose(E(:,:,angle))*(y_test(:,angle)-mean(:,angle));
-end
+% alpha=zeros(l,q);
+% for angle=1:q
+%     alpha(:,angle)=transpose(E(:,:,angle))*(y_test(:,angle)-mean(:,angle));
+% end
 % alpha(:,:)
 
 % resultant projections
 y_p=zeros(l,q);
 for angle=1:q
-   y_p(:,angle)=mean(:,angle)+ E(:,:,angle)*alpha(:,angle);
+   y_p(:,angle)=mean(:,angle)+ E(:,:,angle)*(transpose(E(:,:,angle))*(y_test(:,angle)-mean(:,angle)));
 end
 % y_p(:,:)
 
@@ -149,9 +160,7 @@ W=rescale(W);
 function proj=irradiate(sample,theta,I,sigma)
     proj=radon(sample,theta);
     proj=exp(-proj);
-    for i=1:q
-        proj(i)=I(:,:,i)*proj(i)
-    end
+    proj=I.*proj;
     proj=poissrnd(proj);
     s=size(proj);
     proj=proj+randn(s)*sigma;
@@ -167,14 +176,9 @@ function ftheta=calc_f(theta)
     num=num.*num;
     den=thet+sig*sig;
     term1=num/den;
-    term3=zeros(ht,width);
-    for i=1:width
-        for j=1:no_eig_templ
-            term3(:,i)=term3(:,i)+dot(recons(:,i)-mu_templ,eig_templ(j))*eig_temp(j);
-        end
-        term3(:,i)=term3(:,i)+mu_templ;
-        term3(:,i)=term3(:,i)-recons(:,i);
-    end
+    term3=mu_templ+E_templ*E_templ'*(reshape(recons,[ht*width 1])-mu_templ);
+    term3=reshape(term3, [ht width]);
+    term3=recons-term3;
     term3=term3.*W;
     term3=norm(term3,'fro')^2;
     ftheta=term1+lam2*term3;

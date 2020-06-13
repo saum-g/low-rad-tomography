@@ -149,8 +149,58 @@ W=rescale(W);
 function proj=irradiate(sample,theta,I,sigma)
     proj=radon(sample,theta);
     proj=exp(-proj);
-    proj=I*proj;
-    proj=poissonrnd(proj);
+    for i=1:q
+        proj(i)=I(:,:,i)*proj(i)
+    end
+    proj=poissrnd(proj);
     s=size(proj);
     proj=proj+randn(s)*sigma;
 end
+
+function ftheta=calc_f(theta)
+    recons=reshape(theta,[ht,width]);
+    recons=idct2(recons);
+    thet=radon(recons,angles);
+    thet=exp(-thet);
+    thet=I.*thet;
+    num=y_test-thet;
+    num=num.*num;
+    den=thet+sig*sig;
+    term1=num/den;
+    term3=zeros(ht,width);
+    for i=1:width
+        for j=1:no_eig_templ
+            term3(:,i)=term3(:,i)+dot(recons(:,i)-mu_templ,eig_templ(j))*eig_temp(j);
+        end
+        term3(:,i)=term3(:,i)+mu_templ;
+        term3(:,i)=term3(:,i)-recons(:,i);
+    end
+    term3=term3.*W;
+    term3=norm(term3,'fro')^2;
+    ftheta=term1+lam2*term3;
+end
+function [ans_vec] = grad(I0,y,M,theta,sig)
+    m=length(y);
+    recons=reshape(theta,[ht,width]);
+    recons=idct2(recons);
+    P=radon(recons,angles);
+    ans_vec=zeros(q,1);
+    for val=1:q
+        sum=0;
+        for i=1:m
+            term1=y(i)+I0*exp(-1*P(i));
+            term2=(y(i)-I0*exp(-1*P(i)) -2*sig*sig);
+            term3=I0;
+            term4=M(i,val);
+            term5=(I0*exp(-1*P(i)) + sig*sig);
+            sum=sum+term1*term2*term3*term4/term5;
+        end
+        ans_vec(val)=sum;
+    end
+%UNTITLED2 Summary of this function goes here
+%   Detailed explanation goes here
+
+end
+
+    
+    

@@ -68,15 +68,14 @@ for i=1:n
     Cov_templ=Cov_templ+tmp*tmp';
 end
 % Cov(:,:,:)
-
+no_eigen=10;
 % Eigen spaces.
-E=zeros(l,l,q);
 for angle=1:q
-    [V,~]=eig(Cov(:,:,angle));
-    E(:,:,angle)=E(:,:,angle)+V;
+    [V,~]=eigs(Cov(:,:,angle),no_eigen);
+    E(:,:,angle)=V;
 end
 clear Cov;
-[E_tmpl,~]=eig(Cov_templ);
+[E_tmpl,~]=eigs(Cov_templ,no_eigen);
 clear Cov_templ;
 % E(:,:,:)
 
@@ -108,7 +107,7 @@ end
 
 
 % general anscombe transform
-hyp=sqrt(y+(3/8)+sig*sig)-sqrt(y_p+(3/8)+sig*sig);
+hyp=sqrt(y_test+(3/8)+sig*sig)-sqrt(y_p+(3/8)+sig*sig);
 
 % result of z test
 p=zeros(l,q);
@@ -125,7 +124,7 @@ W_sq=W_in.*W_in;
 W=1./(1+W_sq);
 W=rescale(W);
 
-save('okra-values.mat','W', 'mu_templ','E_templ','y_test','l','q','angles','ht','width');
+save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width');
 
 
 

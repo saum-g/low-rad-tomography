@@ -10,15 +10,15 @@ for volume=1:n
     file_name=join(arr,'');
     s=load(file_name);
     % fieldnames(s)
-    x_train(:,:,:,volume)=s.FDK(:,:,:);
+    x_train(:,:,:,volume)=s.FDK(20:310,100:250,:);
 end
 arr=['fdk',num2str(n+3),'.mat'];
 file_name=join(arr,'');
 s=load(file_name);
-x_test=s.FDK(:,:,:);
+x_test=s.FDK(20:310,100:250,:);
 
 % the number of the slice we are choosing among p sets of slices
-slice_number=1; 
+slice_number=30; 
 % Here, we assume that slices are along direction with length d3..and
 % take the (slice_number)th set of slices...
 R=radon(x_train(:,:,1,1),0);

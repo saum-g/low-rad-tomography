@@ -5,7 +5,7 @@ lambda2=700;
 
 init=zeros(ht*width,1);% init = theta here
 global opts
-opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2);
+opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha',E_tmpl'*(-mu_templ));
 opts(1).ht=ht;
 opts(1).width=width;
 opts(1).intensity=I_mat_low;
@@ -19,15 +19,28 @@ opts(1).l=l;
 opts(1).q=q;
 opts(1).lambda=lambda1;
 opts(1).lambda2=lambda2;
+opts(1).alpha=E_tmpl'*(-mu_templ);
 
 % doing only one optimisation here
-result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+% result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+
+% alternating minimisation
+old_value=calc_f(init);
+recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+new_value=calc_f(recons_theta);
+while new_value-old_value>1
+    opts(1).alpha=fist_backtracking(@calc_term3,@grad_t3,opts(1).alpha,opts,@calc_term3);
+    old_value=new_value;
+    recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+    new_value=calc_f(recons_theta);
+end
 
 
-
+reconstruction=idct2(reshape(recons_theta,[ht,width]));
 
 
 function ftheta=calc_f(theta)
+    global opts
     recons=reshape(theta,[ht,width]);
     recons=idct2(recons);
     thet=radon(recons,angles);
@@ -37,7 +50,7 @@ function ftheta=calc_f(theta)
     num=num.*num;
     den=thet+sig*sig;
     term1=num/den;
-    term3=mu_templ+E_tmpl*E_tmpl'*(reshape(recons,[ht*width 1])-mu_templ);
+    term3=mu_templ+E_tmpl*opts(1).alpha;
     term3=reshape(term3, [ht width]);
     term3=recons-term3;
     term3=term3.*W;
@@ -81,7 +94,7 @@ function [ans_vec] = grad(theta)
     end
     
     % term3
-    alpha_templ=transpose(E_tmpl)*(recons-mu_templ); % the alpha for term 3
+    alpha_templ=opts(1).alpha; % the alpha for term 3
     [W1,~]=size(W);
     U2=zeros(W1,W1);
     left_term=W*recons;

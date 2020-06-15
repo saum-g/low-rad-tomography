@@ -1,11 +1,13 @@
 load('okra-values.mat');
 
-
 lambda1=700;
 lambda2=700;
 
 init=zeros(ht*width,1);% init = theta here
-opts=struct('intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda2);
+global opts
+opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2);
+opts(1).ht=ht;
+opts(1).width=width;
 opts(1).intensity=I_mat_low;
 opts(1).y_test=y_test;
 opts(1).sig=sig;
@@ -15,7 +17,8 @@ opts(1).angles=angles;
 opts(1).W=W;
 opts(1).l=l;
 opts(1).q=q;
-opts(1).lambda=lambda2;
+opts(1).lambda=lambda1;
+opts(1).lambda2=lambda2;
 
 % doing only one optimisation here
 result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
@@ -42,7 +45,8 @@ function ftheta=calc_f(theta)
     ftheta=term1+lam2*term3;
 end
 % function [ans_vec] = grad(I_mat,y_test,theta,sig,E_tmpl,mu_templ,angles,W,l,q)
-function [ans_vec] = grad(theta,opts)
+function [ans_vec] = grad(theta)
+    global opts
     I_mat=opts.intensity;
     y_test=opts.y_test;
     sig=opts.sig;
@@ -52,6 +56,8 @@ function [ans_vec] = grad(theta,opts)
     W=opts.W;
     l=opts.l;
     q=opts.q;
+    ht=opts.ht;
+    width=opts.width;
     % term1
     I_mat=reshape(I_mat,[l*q,1]);
     y=reshape(y_test,[l*q,1]);
@@ -90,7 +96,7 @@ function [ans_vec] = grad(theta,opts)
     end
     
     % final value
-    ans_vec=term1+2*lambda2*term2;
+    ans_vec=term1+2*opts.lambda2*term2;
 end
 
 function Ftheta=calc_F(theta)

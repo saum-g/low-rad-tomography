@@ -9,7 +9,7 @@ W=zeros(135,135);
 
 init=rand(ht*width,1);% init = theta here
 global opts
-opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ));
+opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true);
 opts(1).ht=ht;
 opts(1).width=width;
 opts(1).intensity=I_mat_low;
@@ -97,7 +97,7 @@ function ftheta=calc_f(theta)
     thet=radon(recons,angles);
     thet=exp(-thet);
     thet=I_mat.*thet;
-    num=y_test-thet;
+    num=y_test.*I_mat-thet;
     num=num.*num;
     den=thet+sig*sig;
     term1=num./den;
@@ -128,6 +128,7 @@ function [ans_vec] = grad(theta)
     % term1
     I_mat=reshape(I_mat,[l*q,1]);
     y=reshape(y_test,[l*q,1]);
+    y=y.*I_mat;
     m=length(y);
     hw=length(theta);
     recons=reshape(theta,[ht,width]);
@@ -140,14 +141,19 @@ function [ans_vec] = grad(theta)
 %     disp(size(iradon(P,angles)))
     P=reshape(P,[m,1]);
 %     disp(size(P))
-    U1=zeros(m,1);
-    for i=1:m
-        term1=y(i)-I_mat(i)*exp(-1*P(i));
-        term2=(y(i)+I_mat(i)*exp(-1*P(i)) +2*sig*sig);
-        term3=I_mat(i)*exp(-1*P(i));
-        term5=(I_mat(i)*exp(-1*P(i)) + sig*sig);
-        U1(i)=(term1*term2*term3)/term5;
-    end
+    term3=I_mat.*exp(-P);
+    term1=y-term3;
+    term5=term3+sig*sig;
+    term5=term5.*term5;
+    term2=y+term3+2*sig*sig;
+    U1=term1.*term3.*term2./term5;
+%     for i=1:m
+%         term1=y(i)-I_mat(i)*exp(-1*P(i));
+%         term2=(y(i)+I_mat(i)*exp(-1*P(i)) +2*sig*sig);
+%         term3=I_mat(i)*exp(-1*P(i));
+%         term5=(I_mat(i)*exp(-1*P(i)) + sig*sig);
+%         U1(i)=(term1*term2*term3)/term5;
+%     end
     V1=reshape(U1,[l,q]);
     matrix1=iradon(V1,angles); % error here
 %     disp(size(matrix1))
@@ -159,17 +165,10 @@ function [ans_vec] = grad(theta)
     
     % term3
     [ht,width]=size(W);
-    U2=zeros(hw,1);
     left_term=W.*recons;
     right_term=W.*reshape((mu_templ + E_tmpl*alpha_tmpl),[ht,width]);
-    left_term=reshape(left_term,[hw,1]);
-    right_term=reshape(right_term,[hw,1]);
-    for i=1:hw
-        U2(i)=left_term(i) - right_term(i);
-    end
-    V2=reshape(U2,[ht,width]);
-    matrix2=W.*V2;
-    matrix2=dct2(matrix2);
+    U2=W.*(left_term-right_term);
+    matrix2=dct2(U2);
     t2=reshape(matrix2,[hw,1]);
     
     % final value

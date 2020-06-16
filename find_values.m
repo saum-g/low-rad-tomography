@@ -131,8 +131,8 @@ end
 W_in=iradon(p,angles,'linear','Cosine');
 W_sq=W_in.*W_in;
 W=1./(1+W_sq);
+W=W(2:end,2:end);
 W=rescale(W);
-
 save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig');
 
 

@@ -2,10 +2,14 @@ load('okra-values.mat');
 
 lambda1=700;
 lambda2=700;
+I_low=10;
+I_mat_low=ones(l,q)*I_low;
+sig=1;
+W=zeros(135,135);
 
-init=zeros(ht*width,1);% init = theta here
+init=rand(ht*width,1);% init = theta here
 global opts
-opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha',E_tmpl'*(-mu_templ));
+opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ));
 opts(1).ht=ht;
 opts(1).width=width;
 opts(1).intensity=I_mat_low;
@@ -17,45 +21,92 @@ opts(1).angles=angles;
 opts(1).W=W;
 opts(1).l=l;
 opts(1).q=q;
-opts(1).lambda=lambda1;
+opts(1).lambda1=lambda1;
 opts(1).lambda2=lambda2;
-opts(1).alpha=E_tmpl'*(-mu_templ);
+opts(1).alpha_tmpl=E_tmpl'*(-mu_templ);
+opts(1).verbose=true;
 
 % doing only one optimisation here
-% result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+
+% choose between the one below and the one above.
 
 % alternating minimisation
-old_value=calc_f(init);
-recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
-new_value=calc_f(recons_theta);
-while new_value-old_value>1
-    opts(1).alpha=fist_backtracking(@calc_term3,@grad_t3,opts(1).alpha,opts,@calc_term3);
-    old_value=new_value;
-    recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
-    new_value=calc_f(recons_theta);
+% old_value=calc_f(init);
+% recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+% new_value=calc_f(recons_theta);
+% while new_value-old_value>1
+%     opts.alpha_tmpl=fist_backtracking(@calc_term3,@grad_t3,opts.alpha_tmpl,opts,@calc_term3);
+%     old_value=new_value;
+%     recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+%     new_value=calc_f(recons_theta);
+% end
+
+
+% reconstruction=idct2(reshape(recons_theta,[ht,width]));
+
+% determining lambda1
+lambda1=0.01;
+opts.lambda1=lambda1;
+theta_initial=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+I_mat_low=reshape(I_mat_low,[l*q,1]);
+recons=reshape(theta_initial,[ht,width]);
+recons=idct2(recons);
+term_exp=radon(recons,angles);
+R=(y_test-I.*exp(-term_exp))/sqrt(I.*exp(-term_exp)+sig*sig);
+m=length(R);
+R_val=norm(R,2);
+D=abs(R-sqrt(m));
+D_prev=R_val;
+error_limit=0.16;
+while(D>error_limit && D<D_prev)
+    D_prev=D;
+    lambda1=lambda1+0.01;
+    opts.lambda1=lambda1;
+    theta_initial=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+    I_mat_low=reshape(I_mat_low,[l*q,1]);   
+    recons=reshape(theta_initial,[ht,width]);
+    recons=idct2(recons);
+    term_exp=radon(recons,angles);
+    R=(y_test-I.*exp(-term_exp))/sqrt(I.*exp(-term_exp)+sig*sig);
+    m=length(R);
+    R_val=norm(R,2);
+    D=abs(R-sqrt(m));
 end
-
-
-reconstruction=idct2(reshape(recons_theta,[ht,width]));
-
+if(D>=D_prev)
+    lambda1=lambda1-0.01;
+    opts.lambda1=lambda1;
+end
 
 function ftheta=calc_f(theta)
     global opts
+    ht=opts.ht;
+    width=opts.width;
+    angles=opts.angles;
+    I_mat=opts.intensity;
+    y_test=opts.y_test;
+    sig=opts.sig;
+    E_tmpl=opts.E_tmpl;
+    mu_templ=opts.mu_templ;
+    W=opts.W;
+    lambda2=opts.lambda2;
+    alpha_tmpl=opts.alpha_tmpl;
+    
     recons=reshape(theta,[ht,width]);
     recons=idct2(recons);
     thet=radon(recons,angles);
     thet=exp(-thet);
-    thet=I.*thet;
+    thet=I_mat.*thet;
     num=y_test-thet;
     num=num.*num;
     den=thet+sig*sig;
-    term1=num/den;
-    term3=mu_templ+E_tmpl*opts(1).alpha;
+    term1=num./den;
+    term3=mu_templ+E_tmpl*alpha_tmpl;
     term3=reshape(term3, [ht width]);
     term3=recons-term3;
     term3=term3.*W;
     term3=norm(term3,'fro')^2;
-    ftheta=term1+lam2*term3;
+    ftheta=term1+lambda2*term3;
 end
 % function [ans_vec] = grad(I_mat,y_test,theta,sig,E_tmpl,mu_templ,angles,W,l,q)
 function [ans_vec] = grad(theta)
@@ -71,48 +122,62 @@ function [ans_vec] = grad(theta)
     q=opts.q;
     ht=opts.ht;
     width=opts.width;
+    lambda2=opts.lambda2;
+    alpha_tmpl=opts.alpha_tmpl;
+    
     % term1
     I_mat=reshape(I_mat,[l*q,1]);
     y=reshape(y_test,[l*q,1]);
     m=length(y);
     hw=length(theta);
     recons=reshape(theta,[ht,width]);
+%     disp(size(recons))
     recons=idct2(recons);
+%     disp(size(recons))
     P=radon(recons,angles);
-    U1=zeros(m,m);
+%    disp(m)
+%     disp(size(P))
+%     disp(size(iradon(P,angles)))
+    P=reshape(P,[m,1]);
+%     disp(size(P))
+    U1=zeros(m,1);
     for i=1:m
-        term1=y(i)+I_mat(i)*exp(-1*P(i));
-        term2=(y(i)-I_mat(i)*exp(-1*P(i)) -2*sig*sig);
-        term3=I_mat(i);
+        term1=y(i)-I_mat(i)*exp(-1*P(i));
+        term2=(y(i)+I_mat(i)*exp(-1*P(i)) +2*sig*sig);
+        term3=I_mat(i)*exp(-1*P(i));
         term5=(I_mat(i)*exp(-1*P(i)) + sig*sig);
-        U1(i,i)=(term1*term2*term3)/term5;
+        U1(i)=(term1*term2*term3)/term5;
     end
-    matrix1=dct2(iradon(U1,angles));
-    term1=zeros(hw,1);
-    for i=1:m
-        term1=term1+matrix1(:,i);
-    end
+    V1=reshape(U1,[l,q]);
+    matrix1=iradon(V1,angles); % error here
+%     disp(size(matrix1))
+    [f,g]=size(matrix1);
+    matrix1=matrix1(2:f,2:g);
+    matrix1=dct2(matrix1);
+%     disp(size(matrix1))
+    t1=reshape(matrix1,[hw,1]);
     
     % term3
-    alpha_templ=opts(1).alpha; % the alpha for term 3
-    [W1,~]=size(W);
-    U2=zeros(W1,W1);
-    left_term=W*recons;
-    right_term=W*(mu_templ + E_tmpl*alpha_templ);
-    for i=1:W1
-        U2(i,i)=left_term(i) - right_term(i);
+    [ht,width]=size(W);
+    U2=zeros(hw,1);
+    left_term=W.*recons;
+    right_term=W.*reshape((mu_templ + E_tmpl*alpha_tmpl),[ht,width]);
+    left_term=reshape(left_term,[hw,1]);
+    right_term=reshape(right_term,[hw,1]);
+    for i=1:hw
+        U2(i)=left_term(i) - right_term(i);
     end
-    matrix2=dct2(transpose(W)*U2);
-    term2=zeros(hw,1);
-    for i=1:W1
-        term2=term2+matrix2(:,i);
-    end
+    V2=reshape(U2,[ht,width]);
+    matrix2=W.*V2;
+    matrix2=dct2(matrix2);
+    t2=reshape(matrix2,[hw,1]);
     
     % final value
-    ans_vec=term1+2*opts.lambda2*term2;
+    ans_vec=t1+2*lambda2*t2;
 end
 
 function Ftheta=calc_F(theta)
+    global opts
     Ftheta=calc_f(theta);
-    Ftheta=Ftheta+lambda1*norm(theta,1);
+    Ftheta=Ftheta+opts.lambda1*norm(theta,1);
 end

@@ -5,7 +5,7 @@ lambda2=700;
 I_low=10;
 I_mat_low=ones(l,q)*I_low;
 sig=1;
-W=0;
+% W=0;
 
 init=zeros(ht*width,1);% init = theta here
 global opts
@@ -27,6 +27,8 @@ opts(1).alpha_tmpl=E_tmpl'*(-mu_templ);
 
 % doing only one optimisation here
 % result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+
+% choose between the one below and the one above.
 
 % alternating minimisation
 old_value=calc_f(init);
@@ -128,42 +130,51 @@ function [ans_vec] = grad(theta)
     m=length(y);
     hw=length(theta);
     recons=reshape(theta,[ht,width]);
+%     disp(size(recons))
     recons=idct2(recons);
+%     disp(size(recons))
     P=radon(recons,angles);
+%    disp(m)
+%     disp(size(P))
+%     disp(size(iradon(P,angles)))
+    P=reshape(P,[m,1]);
+%     disp(size(P))
     U1=zeros(m,1);
     for i=1:m
-        term1=y(i)+I_mat(i)*exp(-1*P(i));
-        term2=(y(i)-I_mat(i)*exp(-1*P(i)) -2*sig*sig);
-        term3=I_mat(i);
+        term1=y(i)-I_mat(i)*exp(-1*P(i));
+        term2=(y(i)+I_mat(i)*exp(-1*P(i)) +2*sig*sig);
+        term3=I_mat(i)*exp(-1*P(i));
         term5=(I_mat(i)*exp(-1*P(i)) + sig*sig);
         U1(i)=(term1*term2*term3)/term5;
     end
     V1=reshape(U1,[l,q]);
-    matrix1=dct2(iradon(V1,angles));
-    disp(size(matrix1))
-    term1=zeros(hw,1);
-    for i=1:m
-        term1=term1+matrix1(:,i);
-    end
-
+    matrix1=iradon(V1,angles); % error here
+%     disp(size(matrix1))
+    [f,g]=size(matrix1);
+    matrix1=matrix1(2:f,2:g);
+    matrix1=dct2(matrix1);
+%     disp(size(matrix1))
+    t1=reshape(matrix1,[hw,1]);
+    
     % term3
-    [W1,~]=size(W);
-    U2=zeros(W1,1);
-    left_term=W*recons;
-    right_term=W*(mu_templ + E_tmpl*alpha_tmpl);
-    for i=1:W1
-        U2(i,i)=left_term(i) - right_term(i);
+    [ht,width]=size(W);
+    U2=zeros(hw,1);
+    left_term=W.*recons;
+    right_term=W.*reshape((mu_templ + E_tmpl*alpha_tmpl),[ht,width]);
+    left_term=reshape(left_term,[hw,1]);
+    right_term=reshape(right_term,[hw,1]);
+    for i=1:hw
+        U2(i)=left_term(i) - right_term(i);
     end
-    V2=reshape(U2,[W1,~]);
-    matrix2=dct2(transpose(W)*V2);
-    term2=zeros(hw,1);
-    for i=1:W1
-        term2=term2+matrix2(:,i);
-    end
+    V2=reshape(U2,[ht,width]);
+    matrix2=W.*V2;
+    matrix2=dct2(matrix2);
+    t2=reshape(matrix2,[hw,1]);
     
     % final value
-    ans_vec=term1+2*lambda2*term2;
+    ans_vec=t1+2*lambda2*t2;
 end
+
 function Ftheta=calc_F(theta)
     Ftheta=calc_f(theta);
     Ftheta=Ftheta+lambda1*norm(theta,1);

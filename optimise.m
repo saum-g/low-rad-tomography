@@ -1,13 +1,14 @@
 load('okra-values.mat');
 
-lambda1=700;
+lambda1=1;
 lambda2=700;
-I_low=10;
-I_mat_low=ones(l,q)*I_low;
-sig=1;
+% I_low=10;
+% I_mat_low=ones(l,q)*I_low;
+% sig=1;
 W=zeros(135,135);
 
 init=rand(ht*width,1);% init = theta here
+init=(init/(sum(init,'all')))*100;
 global opts
 opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true);
 opts(1).ht=ht;
@@ -21,11 +22,12 @@ opts(1).angles=angles;
 opts(1).W=W;
 opts(1).l=l;
 opts(1).q=q;
-opts(1).lambda1=lambda1;
+opts(1).lambda=lambda1;
 opts(1).lambda2=lambda2;
 opts(1).alpha_tmpl=E_tmpl'*(-mu_templ);
 opts(1).verbose=true;
-
+% calc_f(init);
+% check_grad(@calc_f,@grad,init);
 % doing only one optimisation here
 result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
 
@@ -101,6 +103,7 @@ function ftheta=calc_f(theta)
     num=num.*num;
     den=thet+sig*sig;
     term1=num./den;
+    term1=sum(term1,'all');
     term3=mu_templ+E_tmpl*alpha_tmpl;
     term3=reshape(term3, [ht width]);
     term3=recons-term3;
@@ -178,5 +181,5 @@ end
 function Ftheta=calc_F(theta)
     global opts
     Ftheta=calc_f(theta);
-    Ftheta=Ftheta+opts.lambda1*norm(theta,1);
+    Ftheta=Ftheta+opts.lambda*norm(theta,1);
 end

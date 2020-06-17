@@ -5,10 +5,11 @@ lambda2=700;
 % I_low=10;
 % I_mat_low=ones(l,q)*I_low;
 % sig=1;
-W=zeros(135,135);
-
-init=rand(ht*width,1);% init = theta here
-init=(init/(sum(init,'all')))*100;
+% W=zeros(135,135);
+% y_test=zeros(l,q);
+init=zeros(ht*width,1);% init = theta here
+% init=rand(ht*width,1);
+% init=(init/(sum(init,'all')))*100;
 global opts
 opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true);
 opts(1).ht=ht;
@@ -27,7 +28,7 @@ opts(1).lambda2=lambda2;
 opts(1).alpha_tmpl=E_tmpl'*(-mu_templ);
 opts(1).verbose=true;
 % calc_f(init);
-% check_grad(@calc_f,@grad,init);
+my_check_grad(@calc_f,@grad,init);
 % doing only one optimisation here
 result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
 
@@ -158,10 +159,10 @@ function [ans_vec] = grad(theta)
 %         U1(i)=(term1*term2*term3)/term5;
 %     end
     V1=reshape(U1,[l,q]);
-    matrix1=iradon(V1,angles); % error here
+    matrix1=iradon(V1,angles,'None',ht); % error here
 %     disp(size(matrix1))
-    [f,g]=size(matrix1);
-    matrix1=matrix1(2:f,2:g);
+%     [f,g]=size(matrix1);
+%     matrix1=matrix1(2:f,2:g);
     matrix1=dct2(matrix1);
 %     disp(size(matrix1))
     t1=reshape(matrix1,[hw,1]);

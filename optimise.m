@@ -31,6 +31,24 @@ opts(1).verbose=true;
 
 my_check_grad(@calc_f,@grad,init);
 
+% doing only one optimisation here
+result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+
+% choose between the one below and the one above.
+
+% alternating minimisation
+% old_value=calc_f(init);
+% recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+% new_value=calc_f(recons_theta);
+% while new_value-old_value>1
+%     opts.alpha_tmpl=fist_backtracking(@calc_term3,@grad_t3,opts.alpha_tmpl,opts,@calc_term3);
+%     old_value=new_value;
+%     recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+%     new_value=calc_f(recons_theta);
+% end
+
+
+% reconstruction=idct2(reshape(recons_theta,[ht,width]));
 
 W_temp=W;
 
@@ -70,24 +88,7 @@ if(D>D_prev)
 end
 W=W_temp;
 opts.W=W;
-% doing only one optimisation here
-result=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
 
-% choose between the one below and the one above.
-
-% alternating minimisation
-% old_value=calc_f(init);
-% recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
-% new_value=calc_f(recons_theta);
-% while new_value-old_value>1
-%     opts.alpha_tmpl=fist_backtracking(@calc_term3,@grad_t3,opts.alpha_tmpl,opts,@calc_term3);
-%     old_value=new_value;
-%     recons_theta=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
-%     new_value=calc_f(recons_theta);
-% end
-
-
-% reconstruction=idct2(reshape(recons_theta,[ht,width]));
 
 
 function ftheta=calc_f(theta)

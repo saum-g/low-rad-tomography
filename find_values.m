@@ -1,4 +1,4 @@
-test_case=2;
+test_case=1;
 if test_case==0 % okra
     n=4; % total (n+1) links => n training volumes
     ht=135;
@@ -221,20 +221,30 @@ W_sq=W_in.*W_in;
 W=1./(1+W_sq);
 W=rescale(W);
 
+if test_case==0
+    p_limit=0.20;
+elseif test_case==1
+    p_limit=0.20;
+else
+    p_limit=0.25;
+end
+
 I_irr=zeros(l,q);
-I_irr(p<0.95)=I_high;
+I_irr(p<p_limit)=I_high;
 slice=x_test(:,:,slice_number);
 y_test_irr=irradiate_noise(slice,angles,I_irr,sig);
-y_test_irr(p>=0.95)=y_test(p>=0.95);
-I_irr(p>=0.95)=I_mat_low(p>=0.95);
+y_test_irr(p>=p_limit)=y_test(p>=p_limit);
+I_irr(p>=p_limit)=I_mat_low(p>=p_limit);
 
 if test_case==0
-    save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+    file_name='okra-values.mat';
 elseif test_case==1
-    save('potato-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+    file_name='potato-values.mat';
 else
-    save('sprouts-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+    file_name='sprouts-values.mat';
 end
+
+save(file_name,'W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum','I_irr','y_test_irr');
 
 
 

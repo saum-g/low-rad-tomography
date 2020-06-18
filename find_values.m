@@ -1,4 +1,4 @@
-test_case=1;
+test_case=2;
 if test_case==0 % okra
     n=4; % total (n+1) links => n training volumes
     ht=135;
@@ -15,6 +15,14 @@ elseif test_case==1
     limitu=6;
     limitd=135;
     no_slices=100;
+else
+    n=5;
+    ht=140;
+    limitl=86;
+    limitr=225;
+    limitu=96;
+    limitd=235;
+    no_slices=130;
 end
 
 % so, if p=the length of dimension perpendicular to which slices are being
@@ -29,20 +37,32 @@ for volume=1:n
         arr=['fdk_okra',num2str(volume+3),'.mat'];
     elseif test_case==1
         arr=['fdk_potato',num2str(volume),'.mat'];
+    else
+        arr=['fdk_sprouts',num2str(volume),'.mat'];
     end
     file_name=join(arr,'');
     s=load(file_name);
     % fieldnames(s)
-    x_train(:,:,:,volume)=s.FDK(limitl:limitr,limitu:limitd,:);
+    if test_case==2
+        x_train(:,:,:,volume)=s.volume(limitl:limitr,limitu:limitd,:);
+    else
+        x_train(:,:,:,volume)=s.FDK(limitl:limitr,limitu:limitd,:);
+    end
 end
 if test_case==0
     arr=['fdk_okra',num2str(3),'.mat'];
 elseif test_case==1
     arr=['fdk_potato',num2str(n+1),'.mat'];
+else
+    arr=['fdk_sprouts',num2str(n+1),'.mat'];
 end
 file_name=join(arr,'');
 s=load(file_name);
-x_test=s.FDK(limitl:limitr,limitu:limitd,:);
+if test_case==2
+    x_test=s.volume(limitl:limitr,limitu:limitd,:);
+else
+    x_test=s.FDK(limitl:limitr,limitu:limitd,:);
+end
 
 % the number of the slice we are choosing among p sets of slices
 if test_case==0
@@ -51,6 +71,9 @@ if test_case==0
 elseif test_case==1
     slice_number=27;
     normalised_sum=50;
+else
+    slice_number=30; 
+    normalised_sum=9;
 end
 
 x_train=(x_train/sum(x_train(:,:,slice_number,1),'all'))*normalised_sum;
@@ -65,6 +88,8 @@ if test_case==0
     q=360;
 elseif test_case==1
     q=900;
+else
+    q=360;
 end
 
 y_train=zeros(l,q,n);
@@ -82,6 +107,9 @@ if test_case==0
     sig=0.1;
 elseif test_case==1
     I_high=38000;
+    sig=0;
+else
+    I_high=32000;
     sig=0;
 end
 I_mat=ones(l,q)*I_high;
@@ -119,6 +147,8 @@ if test_case==0
     no_eigen=3;
 elseif test_case==1
     no_eigen=3;
+else
+    no_eigen=3;
 end
 E=zeros(l,no_eigen,q);
 % Eigen spaces.
@@ -136,6 +166,8 @@ y_test=zeros(l,q);
 if test_case==0
     I_low=5000;
 elseif test_case==1
+    I_low=4000;
+else
     I_low=4000;
 end
 I_mat_low=ones(l,q)*I_low;
@@ -173,6 +205,8 @@ if test_case==0
     patch_size=3;
 elseif test_case==1
     patch_size=1;
+else
+    patch_size=3;
 end
 for j=1:q
     for i=1:l
@@ -190,6 +224,8 @@ if test_case==0
     save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
 elseif test_case==1
     save('potato-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+else
+    save('sprouts-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
 end
 
 

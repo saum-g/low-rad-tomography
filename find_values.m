@@ -50,7 +50,7 @@ if test_case==0
     normalised_sum=30;
 elseif test_case==1
     slice_number=27;
-    normalised_sum=80;
+    normalised_sum=50;
 end
 
 x_train=(x_train/sum(x_train(:,:,slice_number,1),'all'))*normalised_sum;
@@ -61,7 +61,11 @@ R=radon(x_train(:,:,1,1),0);
 l=length(R);
 % [ht,width]=size(x_train(:,:,1,1));
 
-q=360;
+if test_case==0
+    q=360;
+elseif test_case==1
+    q=900;
+end
 
 y_train=zeros(l,q,n);
 
@@ -77,7 +81,7 @@ if test_case==0
     I_high=10000;
     sig=0.1;
 elseif test_case==1
-    I_high=32000;
+    I_high=38000;
     sig=0;
 end
 I_mat=ones(l,q)*I_high;
@@ -114,7 +118,7 @@ Cov_templ=Cov_templ/n;
 if test_case==0
     no_eigen=3;
 elseif test_case==1
-    no_eigen=2;
+    no_eigen=3;
 end
 E=zeros(l,no_eigen,q);
 % Eigen spaces.
@@ -165,7 +169,11 @@ hyp=sqrt(y_test*I_low+(3/8)+sig*sig)-sqrt(y_p*I_low+(3/8)+sig*sig);
 
 % result of z test
 p=zeros(l,q);
-patch_size=3;
+if test_case==0
+    patch_size=3;
+elseif test_case==1
+    patch_size=1;
+end
 for j=1:q
     for i=1:l
         low=max([i-patch_size 1]);
@@ -174,10 +182,9 @@ for j=1:q
         [h,p(i,j)]=ztest(test,0,0.5);
     end
 end
-W_in=iradon((1-p),angles,'linear','Cosine');
+W_in=iradon((1-p),angles,'linear','Cosine',ht);
 W_sq=W_in.*W_in;
 W=1./(1+W_sq);
-W=W(2:end,2:end);
 W=rescale(W);
 if test_case==0
     save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');

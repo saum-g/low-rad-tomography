@@ -6,20 +6,20 @@ n=4; % currently considering okra dataset.. total 5 links => 4 training volumes
 % append all the volumes into a vector => x_train
 x_train=zeros(135,135,123,n);
 for volume=1:n
-    arr=['fdk',num2str(volume+2),'.mat'];
+    arr=['fdk',num2str(volume+3),'.mat'];
     file_name=join(arr,'');
     s=load(file_name);
     % fieldnames(s)
     x_train(:,:,:,volume)=s.FDK(146:280,111:245,:);
 end
-arr=['fdk',num2str(n+3),'.mat'];
+arr=['fdk',num2str(3),'.mat'];
 file_name=join(arr,'');
 s=load(file_name);
 x_test=s.FDK(146:280,111:245,:);
 
 % the number of the slice we are choosing among p sets of slices
 slice_number=30; 
-normalised_sum=50;
+normalised_sum=30;
 x_train=(x_train/sum(x_train(:,:,slice_number,1),'all'))*normalised_sum;
 x_test=(x_test/sum(x_test(:,:,slice_number),'all'))*normalised_sum;
 % Here, we assume that slices are along direction with length d3..and
@@ -41,7 +41,7 @@ for i=1:q
 end
 
 I_high=10000;
-sig=0;
+sig=0.1;
 I_mat=ones(l,q)*I_high;
 % mean and projections of training templates.
 for i=1:n
@@ -87,7 +87,7 @@ clear Cov_templ;
 
 % y -> projections of the test template.
 y_test=zeros(l,q);
-I_low=1000;
+I_low=5000;
 I_mat_low=ones(l,q)*I_low;
 slice=x_test(:,:,slice_number);
 
@@ -128,12 +128,12 @@ for j=1:q
         [h,p(i,j)]=ztest(test,0,0.5);
     end
 end
-W_in=iradon(p,angles,'linear','Cosine');
+W_in=iradon((1-p),angles,'linear','Cosine');
 W_sq=W_in.*W_in;
 W=1./(1+W_sq);
 W=W(2:end,2:end);
 W=rescale(W);
-save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig');
+save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
 
 
 
@@ -144,7 +144,7 @@ function proj=irradiate(sample,theta,I,sigma)
 %     proj=poissrnd(proj);
 %     proj(proj==0)=1;
     s=size(proj);
-    proj=proj+randn(s)*sigma;
+%     proj=proj+randn(s)*sigma;
     proj=max(proj,0);
     proj=proj./I;
 %     proj=-log(proj);

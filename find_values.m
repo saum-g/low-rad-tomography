@@ -1,32 +1,65 @@
-n=4; % currently considering okra dataset.. total 5 links => 4 training volumes
+test_case=1;
+if test_case==0 % okra
+    n=4; % total (n+1) links => n training volumes
+    ht=135;
+    limitl=146;
+    limitr=280;
+    limitu=111;
+    limitd=245;
+    no_slices=123;
+elseif test_case==1
+    n=3;
+    ht=130;
+    limitl=11;
+    limitr=140;
+    limitu=6;
+    limitd=135;
+    no_slices=100;
+end
+
 % so, if p=the length of dimension perpendicular to which slices are being
 % taken... => we have p sets of 2D slices with size of each set=n (1 slice from each
 % template volume and all are in correspondance with each other).
  
+width=ht;
 % append all the volumes into a vector => x_train
-x_train=zeros(135,135,123,n);
+x_train=zeros(ht,width,no_slices,n);
 for volume=1:n
-    arr=['fdk',num2str(volume+3),'.mat'];
+    if test_case==0
+        arr=['fdk_okra',num2str(volume+3),'.mat'];
+    elseif test_case==1
+        arr=['fdk_potato',num2str(volume),'.mat'];
+    end
     file_name=join(arr,'');
     s=load(file_name);
     % fieldnames(s)
-    x_train(:,:,:,volume)=s.FDK(146:280,111:245,:);
+    x_train(:,:,:,volume)=s.FDK(limitl:limitr,limitu:limitd,:);
 end
-arr=['fdk',num2str(3),'.mat'];
+if test_case==0
+    arr=['fdk_okra',num2str(3),'.mat'];
+elseif test_case==1
+    arr=['fdk_potato',num2str(n+1),'.mat'];
+end
 file_name=join(arr,'');
 s=load(file_name);
-x_test=s.FDK(146:280,111:245,:);
+x_test=s.FDK(limitl:limitr,limitu:limitd,:);
 
 % the number of the slice we are choosing among p sets of slices
-slice_number=30; 
-normalised_sum=30;
+if test_case==0
+    slice_number=30; 
+    normalised_sum=30;
+elseif test_case==1
+    slice_number=27;
+    normalised_sum=80;
+end
+
 x_train=(x_train/sum(x_train(:,:,slice_number,1),'all'))*normalised_sum;
 x_test=(x_test/sum(x_test(:,:,slice_number),'all'))*normalised_sum;
 % Here, we assume that slices are along direction with length d3..and
 % take the (slice_number)th set of slices...
 R=radon(x_train(:,:,1,1),0);
 l=length(R);
-[ht,width]=size(x_train(:,:,1,1));
+% [ht,width]=size(x_train(:,:,1,1));
 
 q=360;
 
@@ -40,8 +73,13 @@ for i=1:q
     angles(i)=179*(i-1)/q;
 end
 
-I_high=10000;
-sig=0.1;
+if test_case==0
+    I_high=10000;
+    sig=0.1;
+elseif test_case==1
+    I_high=32000;
+    sig=0;
+end
 I_mat=ones(l,q)*I_high;
 % mean and projections of training templates.
 for i=1:n
@@ -73,7 +111,11 @@ end
 Cov=Cov/n;
 Cov_templ=Cov_templ/n;
 % Cov(:,:,:)
-no_eigen=3;
+if test_case==0
+    no_eigen=3;
+elseif test_case==1
+    no_eigen=2;
+end
 E=zeros(l,no_eigen,q);
 % Eigen spaces.
 for angle=1:q
@@ -87,7 +129,11 @@ clear Cov_templ;
 
 % y -> projections of the test template.
 y_test=zeros(l,q);
-I_low=5000;
+if test_case==0
+    I_low=5000;
+elseif test_case==1
+    I_low=4000;
+end
 I_mat_low=ones(l,q)*I_low;
 slice=x_test(:,:,slice_number);
 
@@ -133,7 +179,11 @@ W_sq=W_in.*W_in;
 W=1./(1+W_sq);
 W=W(2:end,2:end);
 W=rescale(W);
-save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+if test_case==0
+    save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+elseif test_case==1
+    save('potato-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
+end
 
 
 

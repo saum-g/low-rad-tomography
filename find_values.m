@@ -220,6 +220,14 @@ W_in=iradon((1-p),angles,'linear','Cosine',ht);
 W_sq=W_in.*W_in;
 W=1./(1+W_sq);
 W=rescale(W);
+
+I_irr=zeros(l,q);
+I_irr(p<0.95)=I_high;
+slice=x_test(:,:,slice_number);
+y_test_irr=irradiate_noise(slice,angles,I_irr,sig);
+y_test_irr(p>=0.95)=y_test(p>=0.95);
+I_irr(p>=0.95)=I_mat_low(p>=0.95);
+
 if test_case==0
     save('okra-values.mat','W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum');
 elseif test_case==1

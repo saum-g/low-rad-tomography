@@ -17,10 +17,14 @@ init=(init/(sum(init,'all')))*50;
 % init=reshape(dct2(x_test(:,:,30)),[ht*width 1]);
 global opts
 opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
+% opts=struct('ht',ht,'width',width,'intensity',I_irr,'y_test',y_test_irr,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
+
 opts(1).ht=ht;
 opts(1).width=width;
-opts(1).intensity=I_mat_low;
-opts(1).y_test=y_test;
+% opts(1).intensity=I_mat_low;
+% opts(1).y_test=y_test;
+opts(1).intensity=I_irr;
+opts(1).y_test=y_test_irr;
 opts(1).sig=sig;
 opts(1).E_tmpl=E_tmpl;
 opts(1).mu_templ=mu_templ;

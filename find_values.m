@@ -1,4 +1,4 @@
-test_case=1;
+test_case=0;
 if test_case==0 % okra
     n=4; % total (n+1) links => n training volumes
     ht=135;
@@ -107,7 +107,7 @@ if test_case==0
     sig=0.1;
 elseif test_case==1
     I_high=38000;
-    sig=0;
+    sig=7.8e-4;
 else
     I_high=32000;
     sig=0;

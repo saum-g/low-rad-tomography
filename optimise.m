@@ -1,6 +1,6 @@
 load('okra-values.mat');
 
-lambda1=1;
+lambda1=0.1;
 lambda2=700;
 % I_low=10;
 % I_mat_low=ones(l,q)*I_low;
@@ -13,11 +13,11 @@ temp=idct2(init);
 temp(temp<0)=0;
 init=dct2(temp);
 init=reshape(init,[ht*width 1]);
-init=(init/(sum(init,'all')))*50;
+init=(init/(sum(init,'all')))*normalised_sum;
 % init=reshape(dct2(x_test(:,:,30)),[ht*width 1]);
 global opts
-opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
-% opts=struct('ht',ht,'width',width,'intensity',I_irr,'y_test',y_test_irr,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
+% opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
+opts=struct('ht',ht,'width',width,'intensity',I_irr,'y_test',y_test_irr,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
 
 opts(1).ht=ht;
 opts(1).width=width;
@@ -37,7 +37,7 @@ opts(1).lambda2=lambda2;
 opts(1).alpha_tmpl=E_tmpl'*(init-mu_templ);
 opts(1).verbose=true;
 opts(1).theta_recons=init;
-opts(1).tol=1e-6;
+opts(1).tol=5e-6;
 % calc_f(init);
 % my_check_grad(@calc_f,@grad,init);
 

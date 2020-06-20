@@ -1,5 +1,5 @@
-test_case=0;
-if test_case==0 % okra
+test_case=1;
+if test_case==0 % okra - region of interest - 20:30,35:55
     n=4; % total (n+1) links => n training volumes
     ht=135;
     limitl=146;
@@ -7,7 +7,7 @@ if test_case==0 % okra
     limitu=111;
     limitd=245;
     no_slices=123;
-elseif test_case==1
+elseif test_case==1 % potato
     n=3;
     ht=130;
     limitl=11;
@@ -15,7 +15,7 @@ elseif test_case==1
     limitu=6;
     limitd=135;
     no_slices=100;
-else
+else % sprouts
     n=5;
     ht=140;
     limitl=86;
@@ -107,10 +107,10 @@ if test_case==0
     sig=0.1;
 elseif test_case==1
     I_high=38000;
-    sig=7.8e-4;
+    sig=0.001;
 else
     I_high=32000;
-    sig=0;
+    sig=0.01;
 end
 I_mat=ones(l,q)*I_high;
 % mean and projections of training templates.
@@ -148,7 +148,7 @@ if test_case==0
 elseif test_case==1
     no_eigen=3;
 else
-    no_eigen=3;
+    no_eigen=5;
 end
 E=zeros(l,no_eigen,q);
 % Eigen spaces.
@@ -162,7 +162,7 @@ clear Cov_templ;
 % E(:,:,:)
 
 % y -> projections of the test template.
-y_test=zeros(l,q);
+% y_test=zeros(l,q);
 if test_case==0
     I_low=5000;
 elseif test_case==1
@@ -244,7 +244,7 @@ else
     file_name='sprouts-values.mat';
 end
 
-save(file_name,'W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum','I_irr','y_test_irr');
+save(file_name,'W', 'mu_templ','E_tmpl','y_test','l','q','angles','ht','width','I_mat_low','sig','normalised_sum','I_irr','y_test_irr','test_case','normalised_sum');
 
 
 
@@ -266,6 +266,7 @@ function proj=irradiate_noise(sample,theta,I,sigma)
     proj=exp(-proj);
     proj=I.*proj;
     proj=poissrnd(proj);
+    proj=proj+sigma*sigma;
 %     proj(proj==0)=1;
     s=size(proj);
     proj=proj+randn(s)*sigma;
@@ -273,4 +274,3 @@ function proj=irradiate_noise(sample,theta,I,sigma)
     proj=proj./I;
 %     proj=-log(proj);
 end
-

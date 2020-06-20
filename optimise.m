@@ -1,6 +1,25 @@
-load('okra-values.mat');
+if(test_case==0)
+    load('okra-values.mat');
+elseif(test_case==1) 
+    load('potato-values.mat');
+else
+    load('sprouts-values.mat');
+end
 
-lambda1=0.1;
+% total_val_check=1;
+% lambda1_store=zeros(total_val_check,1);
+% rmse_store=zeros(total_val_check,1);
+% for cnt2=1:total_val_check
+% disp(cnt2)
+if (test_case==0)
+    lambda1=6.2; % lambda1_opt - without=6.2, with=6.9
+elseif(test_case==1)
+    lambda1=0.5; % lambda1_opt - without=0.6, with=1
+else
+    lambda1=3.3; % lambda1_opt - without=3.5, with=4.0
+end
+% % best lambda1=3.9 - rmse=0.1844
+% lambda1_store(cnt2)=lambda1;
 lambda2=700;
 % I_low=10;
 % I_mat_low=ones(l,q)*I_low;
@@ -16,15 +35,14 @@ init=reshape(init,[ht*width 1]);
 init=(init/(sum(init,'all')))*normalised_sum;
 % init=reshape(dct2(x_test(:,:,30)),[ht*width 1]);
 global opts
-% opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
-opts=struct('ht',ht,'width',width,'intensity',I_irr,'y_test',y_test_irr,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',1e-6);
-
+opts=struct('ht',ht,'width',width,'intensity',I_mat_low,'y_test',y_test,'sig',sig,'E_tmpl',E_tmpl,'mu_templ',mu_templ,'angles',angles,'W',W,'l',l,'q',q,'lambda',lambda1,'lambda2',lambda2,'alpha_tmpl',E_tmpl'*(-mu_templ),'verbose',true,'theta_recons',init,'tol',5e-6);
 opts(1).ht=ht;
 opts(1).width=width;
 % opts(1).intensity=I_mat_low;
 % opts(1).y_test=y_test;
 opts(1).intensity=I_irr;
 opts(1).y_test=y_test_irr;
+disp(size(y_test))
 opts(1).sig=sig;
 opts(1).E_tmpl=E_tmpl;
 opts(1).mu_templ=mu_templ;
@@ -41,8 +59,52 @@ opts(1).tol=5e-6;
 % calc_f(init);
 % my_check_grad(@calc_f,@grad,init);
 
+W_temp=W;
+
+% determining lambda1
+change=0.1;
+opts.lambda=lambda1;
+W=zeros(ht,width);
+opts.W=W;
+theta_initial=my_fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+recons=reshape(theta_initial,[ht,width]);
+recons=idct2(recons);
+term_exp=radon(recons,angles);
+R=(y_test-I_mat_low.*exp(-term_exp))./sqrt(I_mat_low.*exp(-term_exp)+sig*sig);
+disp(size(R))
+R=reshape(R,[l*q,1]);
+m=length(R);
+R_val=norm(R,2);
+D=abs(R_val-sqrt(m));
+lambda1_opt=lambda1;
+D_opt=D;
+for cnt=1:10
+    lambda1=lambda1+change;
+    opts.lambda=lambda1;
+    disp(lambda1)
+    theta_initial=my_fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
+    recons=reshape(theta_initial,[ht,width]);
+    recons=idct2(recons);
+    term_exp=radon(recons,angles);
+    R=(y_test-I_mat_low.*exp(-term_exp))./sqrt(I_mat_low.*exp(-term_exp)+sig*sig);
+    R=reshape(R,[l*q,1]);
+    R_val=norm(R,2);
+    D=abs(R_val-sqrt(m));
+    disp(D)
+    if(D<D_opt)
+        lambda1_opt=lambda1;
+        D_opt=D;
+    end
+end
+
+W=W_temp;
+opts.W=W;
+% lambda1_opt=7;
+% best (lambda1=7 -> Rmse = 0.0748) lambda1=5 -> Rmse = 0.1419
+opts.lambda=lambda1_opt;
+
 % doing only one optimisation here
-% result=fista_backtracking(@calc_f,@grad,opts.theta_recons,opts,@calc_F);
+% result=my_fista_backtracking(@calc_f,@grad,opts.theta_recons,opts,@calc_F);
 % rec_img=idct2(result);
 % rec_img(rec_img<0)=0;
 % result=dct2(rec_img);
@@ -59,7 +121,7 @@ rec_theta=reshape(rec_theta, [ht*width 1]);
 opts.theta_recons=rec_theta;
 opts.lambda=0;
 opts.alpha_tmpl=fista_backtracking(@calc_term3,@gradt3,opts.alpha_tmpl,opts,@calc_term3);
-opts.lambda=lambda1;
+opts.lambda=lambda1_opt;
 new_value=calc_f(opts.theta_recons);
 while old_value-new_value>1e-4
     rec_theta=my_fista_backtracking(@calc_f,@grad,opts.theta_recons,opts,@calc_F);
@@ -71,54 +133,15 @@ while old_value-new_value>1e-4
     opts.theta_recons=rec_theta;
     opts.lambda=0;
     opts.alpha_tmpl=fista_backtracking(@calc_term3,@gradt3,opts.alpha_tmpl,opts,@calc_term3);
-    opts.lambda=lambda1;
+    opts.lambda=lambda1_opt;
     old_value=new_value;
     new_value=calc_f(opts.theta_recons);
 end
-
-
-% reconstruction=idct2(reshape(recons_theta,[ht,width]));
-
-W_temp=W;
-
-% determining lambda1
-lambda1=0.01;
-opts.lambda1=lambda1;
-W=zeros(ht,width);
-opts.W=W;
-theta_initial=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
-recons=reshape(theta_initial,[ht,width]);
-recons=idct2(recons);
-term_exp=radon(recons,angles);
-R=(y_test-I_mat_low.*exp(-term_exp))/sqrt(I_mat_low.*exp(-term_exp)+sig*sig);
-R=reshape(R,[l*q,1]);
-m=length(R);
-R_val=norm(R,2);
-D=abs(R_val-sqrt(m));
-D_prev=R_val;
-error_limit=0.16;
-while(D>error_limit && D<D_prev)
-    disp(lambda1,D)
-    D_prev=D;
-    lambda1=lambda1+0.01;
-    opts.lambda1=lambda1;
-    theta_initial=fista_backtracking(@calc_f,@grad,init,opts,@calc_F);
-    recons=reshape(theta_initial,[ht,width]);
-    recons=idct2(recons);
-    term_exp=radon(recons,angles);
-    R=(y_test-I_mat_low.*exp(-term_exp))/sqrt(I_mat_low.*exp(-term_exp)+sig*sig);
-    R=reshape(R,[l*q,1]);
-    R_val=norm(R,2);
-    D=abs(R_val-sqrt(m));
-end
-if(D>D_prev)
-    lambda1=lambda1-0.01;
-    opts.lambda1=lambda1;
-end
-W=W_temp;
-opts.W=W;
-
-
+rmse=norm(reshape(x_test(:,:,slice_number),[ht*width,1])-reshape(rec_img,[ht*width,1]),2)/norm(mu_templ,2);
+% end
+% % reconstruction=idct2(reshape(recons_theta,[ht,width]));
+% disp(lambda1_store)
+% disp(rmse_store)
 
 function ftheta=calc_f(theta)
     global opts
@@ -232,9 +255,9 @@ end
 
 function Ftheta=calc_F(theta)
     global opts
-    lambda=opts.lambda;
+    lambda1=opts.lambda;
     Ftheta=calc_f(theta);
-    Ftheta=Ftheta+lambda*norm(theta,1);
+    Ftheta=Ftheta+lambda1*norm(theta,1);
 end
 
 function t3=calc_term3(alpha)

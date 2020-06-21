@@ -1,4 +1,4 @@
-test_case=1;
+test_case=input("Enter the test case number: ");
 if test_case==0 % okra - region of interest - 20:30,35:55
     n=4; % total (n+1) links => n training volumes
     ht=135;
